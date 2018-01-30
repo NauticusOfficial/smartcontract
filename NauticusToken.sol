@@ -1,11 +1,11 @@
 pragma solidity ^0.4.18;
 
 // ----------------------------------------------------------------------------
-// 'NAUT' Nauticus Token Fixed Contract
+// 'NTS' Nauticus Token Fixed Supply
 //
-// Symbol      : NAUT
+// Symbol      : NTS
 // Name        : NauticusToken
-// Total supply: 22,000,000,000.000000000000000000
+// Total supply: 18,000,000,000.000000000000000000
 // Decimals    : 18
 //
 // (c) Nauticus
@@ -30,27 +30,27 @@ contract Permission {
 }	
 
 /**
- * The Math helps maintain safe Math operations.
+ * maintains the safety of mathematical operations.
  */
 library Math {
 
-	function add(uint a, uint b) internal pure returns (uint c){
+	function add(uint a, uint b) internal pure returns (uint c) {
 		c = a + b;
 		require(c >= a);
 		require(c >= b);
 	}
 
-	function sub(uint a, uint b) internal pure returns (uint c){
+	function sub(uint a, uint b) internal pure returns (uint c) {
 		require(b <= a);
 		c = a - b;
 	}
 
-	function mul(uint a, uint b) internal pure returns (uint c){
+	function mul(uint a, uint b) internal pure returns (uint c) {
 		c = a * b;
 		require(a == 0 || c / a == b);
 	}
 
-	function div(uint a, uint b) internal pure returns (uint c){
+	function div(uint a, uint b) internal pure returns (uint c) {
 		require(b > 0);
 		c = a / b;
 	}
@@ -58,9 +58,9 @@ library Math {
 
 
 /**
- * The NauticusToken contract contains ERC20 compliant components, and holds the bulk of token logic.
+ * implements ERC20 standard, contains the token logic.
  */
-contract NauticusToken is Permission{
+contract NauticusToken is Permission {
     using Math for uint;
     
     
@@ -68,9 +68,9 @@ contract NauticusToken is Permission{
 	string public constant symbol = "NTSB";
 	uint32 public constant decimals = 18;
     uint public totalSupply;
-	address constant nauticus = 0x05E0D106647128F866a41B7847BEA739Eed80Ad3;
-	bool private dCapActive = false;
-	
+    
+    bool public minted = false;
+    
     mapping(address => uint) balances;
     mapping(address => mapping(address => uint)) allowed;
     
@@ -84,8 +84,8 @@ contract NauticusToken is Permission{
     
     
     //start time in UNIX timestamp
-    uint constant inception = 1509458400;
-    uint constant duration = 120;
+    uint constant inception = 1517317267;
+    uint constant duration = 20;
     
     //hardcap
     uint public hardCap = 18000000000.000000000000000000;
@@ -93,15 +93,23 @@ contract NauticusToken is Permission{
     bool public transferActive = true;
 
 	
-	
+	modifier canMint(){
+	    require(!minted);
+	    _;
+	}
 	
 	modifier ICOActive() { 
-		require(now > inception && now < inception  + (duration * 1 days)); 
+		require(now > inception && now < inception + (duration * 1 days)); 
 		_; 
+	}
+	
+	modifier ICOTerminated() {
+	    require(now > inception + (duration * 1 minutes));
+	    _;
 	}
 
 	modifier transferble() { 
-		//if you are NOT Nauticus
+		//if you are NOT owner
 		if(msg.sender != owner){
 			require(transferActive);
 		}
@@ -109,12 +117,12 @@ contract NauticusToken is Permission{
 	}
 	
 
-	function totalSupply() public constant returns (uint){
+	function totalSupply() public constant returns (uint) {
 		//return the totalSupply, less the tokens in address(0).
 		return totalSupply.sub(balances[address(0)]);
 	}
 
-	function transfer(address to, uint val) transferble public returns (bool){
+	function transfer(address to, uint val) transferble ICOTerminated public returns (bool){
 		//only send to a valid address
 		require(to != address(0));
 		require(val <= balances[msg.sender]);
@@ -151,9 +159,18 @@ contract NauticusToken is Permission{
         return true;
 	}
 	
-	function mint(address recipient,uint val) onlyOwner public returns (bool){
-	    balances[recipient] = balances[recipient].add(val);
-	    totalSupply = totalSupply.add(val);
+	function toggleTransfer(bool newTransferState) onlyOwner returns (bool) {
+	    require(newTransferState != transferActive);
+	    transferActive = newTransferState;
+	    return true;
+	}
+	
+	function mint(uint purchasedTokens) onlyOwner ICOTerminated canMint public returns (bool){
+	    totalSupply = (10*((10*purchasedTokens) * 6)).div(1000);
+	    //implement the hardcap
+	    totalSupply > hardCap ? totalSupply = hardCap : totalSupply = totalSupply;
+	    //mint
+	    balances[owner] = balances[owner].add(totalSupply);
 	    return true;
 	    
 	}
@@ -161,15 +178,8 @@ contract NauticusToken is Permission{
     function allowance(address holder, address recipient) public constant returns (uint remaining) {
         return allowed[holder][recipient];
     }
-    function burn(uint publicTokens) onlyOwner public returns  (bool success){
-        transfer(address(0),hardCap - (10*((10*publicTokens) * 6)).div(1000));
-        
-        return true;
-    }
     
-
-    
-    function NauticusToken () public {mint(owner,hardCap);}
+    function NauticusToken () public {}
 	
 
 
