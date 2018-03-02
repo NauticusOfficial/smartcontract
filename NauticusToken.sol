@@ -5,7 +5,7 @@ pragma solidity ^0.4.18;
 //
 // Symbol      : NTS
 // Name        : NauticusToken
-// Total supply: 18,000,000,000.000000000000000000
+// Total supply: 2,500,000,000.000000000000000000
 // Decimals    : 18
 //
 // (c) Nauticus 
@@ -16,16 +16,19 @@ pragma solidity ^0.4.18;
  */
 contract Permission {
     address public owner;
-	function Permission() public {owner = msg.sender;}
+	function Permission() public {
+        owner = msg.sender;
+    }
 
 	modifier onlyOwner() { 
 		require(msg.sender == owner);
 		_;
 	}
 
-	function changeOwner(address newOwner) onlyOwner public{
+	function changeOwner(address newOwner) onlyOwner public returns (bool){
 		require(newOwner != address(0));
 		owner = newOwner;
+        return true;
 	}
 		
 }	
@@ -37,8 +40,8 @@ library Math {
 
 	function add(uint a, uint b) internal pure returns (uint c) {
 		c = a + b;
-		require(c >= a);
-		require(c >= b);
+		//require(c >= a);
+		//require(c >= b);
 	}
 
 	function sub(uint a, uint b) internal pure returns (uint c) {
@@ -64,8 +67,8 @@ library Math {
 contract NauticusToken is Permission {
 
     //Transfer and Approval events
-    event Approval(address indexed owner, address indexed spender, uint indexed val);
-    event Transfer(address sender, address recipient, uint val);
+    event Approval(address indexed owner, address indexed spender, uint val);
+    event Transfer(address indexed sender, address indexed recipient, uint val);
 
     //implement Math lib for safe mathematical transactions.
     using Math for uint;
@@ -75,13 +78,13 @@ contract NauticusToken is Permission {
     // START    28/02/2018 NOON +10 GMT
     // END      28/08/2018 NOON +10 GMT
     //          
-    uint constant inception = 1519779600;
-    uint constant termination = 1535421600;
+    uint public constant inception = 1519779600;
+    uint public constant termination = 1535421600;
 
     //token details
     string public constant name = "NauticusToken";
 	string public constant symbol = "NTS";
-	uint32 public constant decimals = 18;
+	uint8 public constant decimals = 18;
 
     //number of tokens that exist, totally.
     uint public totalSupply;
@@ -90,10 +93,10 @@ contract NauticusToken is Permission {
     bool public minted = false;
 
     //hardcap, maximum amount of tokens that can exist
-    uint public constant hardCap = 18000000000.000000000000000000;
+    uint public constant hardCap = 2500000000000000000000000000;
     
     //if if users are able to transfer tokens between each toher.
-    bool public transferActive = true;
+    bool public transferActive = false;
     
     //mappings for token balances and allowances.
     mapping(address => uint) balances;
@@ -107,17 +110,17 @@ contract NauticusToken is Permission {
 	    _;
 	}
 	
-	modifier ICOActive() { 
+	/*modifier ICOActive() { 
 		require(now > inception * 1 seconds && now < termination * 1 seconds); 
 		_; 
-	}
+	}*/
 	
 	modifier ICOTerminated() {
 	    require(now > termination * 1 seconds);
 	    _;
 	}
 
-	modifier transferble() { 
+	modifier transferable() { 
 		//if you are NOT owner
 		if(msg.sender != owner) {
 			require(transferActive);
@@ -127,14 +130,7 @@ contract NauticusToken is Permission {
 	
     /*
         FUNCTIONS
-    */
-    /**
-        @return totalSupply the amount of tokens that exist, totally.
-     */
-	function totalSupply() public constant returns (uint) {
-		return totalSupply;
-	}
-        
+    */  
     /**
         @dev approves a spender to spend an amount.
         @param spender address of the spender
@@ -153,7 +149,7 @@ contract NauticusToken is Permission {
         @param val the amount to transfer
         @return true
      */
-	function transfer(address to, uint val) transferble ICOTerminated public returns (bool) {
+	function transfer(address to, uint val) transferable ICOTerminated public returns (bool) {
 		//only send to a valid address
 		require(to != address(0));
 		require(val <= balances[msg.sender]);
@@ -165,7 +161,7 @@ contract NauticusToken is Permission {
 		balances[to] = balances[to] + val;
 
 		//emit transfer event 
-		Transfer(msg.sender,to,val);
+		Transfer(msg.sender, to, val);
 		return true;
 	}
 
@@ -184,7 +180,7 @@ contract NauticusToken is Permission {
         @param val the amount of tokens
         @return true
      */
-	function transferFrom(address from, address recipient, uint val) transferble public returns (bool) {
+	function transferFrom(address from, address recipient, uint val) transferable ICOTerminated public returns (bool) {
 		//to and from must be valid addresses
 		require(recipient != address(0));
 		require(from != address(0));
@@ -211,14 +207,15 @@ contract NauticusToken is Permission {
 	
     /**
         @dev mint the appropriate amount of tokens, which is relative to tokens sold, unless hardcap is reached.
-        @param purchasedTokens the amount of tokens purchased on the Nauticus platform.
+        @param tokensToExist the amount of tokens purchased on the Nauticus platform.
         @return true
      */
-	function mint(uint purchasedTokens) onlyOwner ICOTerminated canMint public returns (bool) {
+	function mint(uint tokensToExist) onlyOwner ICOTerminated canMint public returns (bool) {
         //wrapping in an x10 to prevent multiplication by 0.6
-	    totalSupply = (10*((10*purchasedTokens) * 6)).div(1000);
-	    totalSupply > hardCap ? totalSupply = hardCap : totalSupply = totalSupply;
+	    tokensToExist > hardCap ? totalSupply = hardCap : totalSupply = tokensToExist;
 	    balances[owner] = balances[owner].add(totalSupply);
+        minted = true;
+        transferActive = true;
 	    return true;
 	    
 	}
