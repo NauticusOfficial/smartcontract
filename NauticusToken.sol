@@ -25,7 +25,7 @@ contract Permission {
 		_;
 	}
 
-	function changeOwner(address newOwner) onlyOwner public returns (bool){
+	function changeOwner(address newOwner) onlyOwner public returns (bool) {
 		require(newOwner != address(0));
 		owner = newOwner;
         return true;
