@@ -75,11 +75,11 @@ contract NauticusToken is Permission {
     
     //Inception and Termination of Nauticus ICO
     //          DD/MM/YYYY
-    // START    28/02/2018 NOON +10 GMT
-    // END      28/08/2018 NOON +10 GMT
+    // START    18/03/2018 NOON GMT
+    // END      18/05/2018 NOON GMT
     //          
-    uint public constant inception = 1519779600;
-    uint public constant termination = 1535421600;
+    uint public constant inception = 1521331200;
+    uint public constant termination = 1526601600;
 
     //token details
     string public constant name = "NauticusToken";
@@ -211,7 +211,6 @@ contract NauticusToken is Permission {
         @return true
      */
 	function mint(uint tokensToExist) onlyOwner ICOTerminated canMint public returns (bool) {
-        //wrapping in an x10 to prevent multiplication by 0.6
 	    tokensToExist > hardCap ? totalSupply = hardCap : totalSupply = tokensToExist;
 	    balances[owner] = balances[owner].add(totalSupply);
         minted = true;
