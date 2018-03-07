@@ -185,7 +185,7 @@ contract NauticusToken is Permission {
 		require(recipient != address(0));
 		require(from != address(0));
 		//tokens must exist in from account
-		require(balances[from] <= val);
+		require(val <= balances[msg.sender]);
         allowed[from][msg.sender] = allowed[from][msg.sender].sub(val);
 		balances[from] = balances[from] - val;
 		balances[recipient] = balances[recipient] + val;
